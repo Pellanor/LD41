@@ -1,7 +1,6 @@
 -> game_start
 
 VAR time = 0.0
-VAR resources = 5
 
 LIST locations = meadow, woods, rocks, alien_base, artifact
 
@@ -38,6 +37,12 @@ LIST quantities = single, few, squad, section, platoon, company
         - else: {num_to_quantity(x)} of {of}s
     }
 
+VAR resources = 0
+VAR resource_delta = 0.0
+VAR resource_rate = 0
+
+=== function add_resources(x)
+    ~ resources += x
 
 === game_start ===
 - The peasants have been rumbling about something in the woods to the west of New Kingstown.
@@ -59,6 +64,9 @@ LIST quantities = single, few, squad, section, platoon, company
     ~ hq = woods
 -   ~ found_locations += hq
     ~ time = 0.0
+    ~ resources = 5
+    ~ resource_delta = 5.0
+    ~ resource_rate = 1
     -> menu.orders
 
 === status ===
@@ -77,6 +85,7 @@ LIST quantities = single, few, squad, section, platoon, company
 + Issue orders -> orders
 + Train units -> training
 + Construct buildings -> construction
++ Make it rain! -> menu # async #add_resources # 10 # 10
 + Wait -> menu
 
 = orders
