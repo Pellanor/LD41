@@ -1,5 +1,7 @@
 -> game_start
 
+VAR time = 0.0
+VAR resources = 5
 
 LIST locations = meadow, woods, rocks, alien_base, artifact
 
@@ -32,7 +34,8 @@ LIST quantities = single, few, squad, section, platoon, company
 === function print_quantity_of(x, of)
     {
         - x == 1: {num_to_quantity(x)} {of}
-        - else: {num_to_quantity(x)} of {of}
+        - x < 5 : {num_to_quantity(x)} {of}s
+        - else: {num_to_quantity(x)} of {of}s
     }
 
 
@@ -55,19 +58,29 @@ LIST quantities = single, few, squad, section, platoon, company
 *   You grab a bottle and walk in a random direction[.] stopping when the bottle is empty and declaring that your camp shall be here.
     ~ hq = woods
 -   ~ found_locations += hq
+    ~ time = 0.0
     -> menu.orders
+
+=== status ===
+'Greetings Commander. It is {time} o'clock. We currently have <>
+{idle_scouts: a {print_quantity_of(idle_scouts, "idle scout")}, <>}
+{idle_messengers: a {print_quantity_of(idle_messengers, "idle messenger")}, <>}
+{idle_knights: a {print_quantity_of(idle_knights, "idle knight")}, <>}
+{idle_archers: a {print_quantity_of(idle_archers, "idle archer")}, <>}
+{idle_peasents: a {print_quantity_of(idle_peasents, "idle peasent")}, <>}
+{has_idle(): and }{print_num(resources)} resources available. <>
+-> DONE
 
 
 === menu ===
-'Greetings Commander. We currently have <>
-{idle_scouts: a {print_quantity_of(idle_scouts, "idle scouts")} <>}
-...... available'
+<- status
 + Issue orders -> orders
 + Train units -> training
 + Construct buildings -> construction
 + Wait -> menu
 
 = orders
+<- status
 * {idle_messengers} Report your home base location back to New Kingstown.
 + {idle_scouts && not all_found()} Send a scout exploring.
     ~idle_scouts -= 1

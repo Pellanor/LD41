@@ -19,6 +19,21 @@ public class StoryScript : MonoBehaviour {
     [SerializeField]
     private Button buttonPrefab;
 
+    private float lastGatherTime = 0;
+
+    void Update()
+    {
+        float curTime = (float)story.variablesState["time"] + Time.deltaTime;
+        story.variablesState["time"] = curTime;
+
+        if (lastGatherTime - curTime > (float)story.variablesState["resource_delta"])
+        {
+            lastGatherTime = curTime;
+            story.variablesState["resources"] = (int)story.variablesState["resources"] + (int)story.variablesState["resource_rate"];
+        }
+
+    }
+
     void Awake()
     {
         StartStory();
