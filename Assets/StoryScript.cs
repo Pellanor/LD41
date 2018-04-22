@@ -1,5 +1,4 @@
 ﻿using Ink.Runtime;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,6 +22,16 @@ public class StoryScript : MonoBehaviour {
     private float lastGatherTime = 0;
 
     private LinkedList<AsyncCall> asyncCalls = new LinkedList<AsyncCall>();
+
+    private static Dictionary<string, int> quantities = new Dictionary<string, int>
+        {
+            { "single", 1 },
+            { "few", 5 },
+            { "squad", 10 },
+            { "section", 25 },
+            { "platoon", 50 },
+            { "company", 200 },
+        };
 
     void Update()
     {
@@ -74,12 +83,19 @@ public class StoryScript : MonoBehaviour {
                 {
                     int index = story.currentTags.IndexOf("async");
                     string func = story.currentTags[index + 1];
-                    int delta = System.Int32.Parse(story.currentTags[index + 2]);
 //                    object[] varargs = story.currentTags.GetRange(index + 3, story.currentTags.Count - (index + 3)).ToArray();
                     if (func == "add_resources")
                     {
+                        int delta = System.Int32.Parse(story.currentTags[index + 2]);
                         int resources = System.Int32.Parse(story.currentTags[index + 3]);
                         asyncCalls.AddLast(AsyncCall.AddResources(delta + curTime, resources));
+                    }
+                    if (func == "train")
+                    {
+                        int quantity = quantities[story.currentTags[index + 2]];
+                        string unit = story.currentTags[index + 3];
+                        int delta = (int)story.variablesState[unit + "_time"];
+                        asyncCalls.AddLast(AsyncCall.Train(unit, delta + curTime, quantity));
                     }
                 }
             }
@@ -150,6 +166,11 @@ public class StoryScript : MonoBehaviour {
         public static AsyncCall AddResources(float executionTime, int resources)
         {
             return new AsyncCall("add_resources", executionTime, resources);
+        }
+
+        public static AsyncCall Train(string unit, float executionTime, int quantity)
+        {
+            return new AsyncCall("train_"+unit, executionTime, quantity);
         }
 
         private AsyncCall(string func, float executeTime, params object[] vars)
