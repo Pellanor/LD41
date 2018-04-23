@@ -65,7 +65,7 @@ public class StoryScript : MonoBehaviour {
     void StartStory()
     {
         story = new Story(inkJSONAsset.text);
-
+        story.BindExternalFunction("trunc", (float x) => { return Mathf.FloorToInt(x); });
         RefreshView();
     }
 
@@ -86,16 +86,34 @@ public class StoryScript : MonoBehaviour {
 //                    object[] varargs = story.currentTags.GetRange(index + 3, story.currentTags.Count - (index + 3)).ToArray();
                     if (func == "add_resources")
                     {
-                        int delta = System.Int32.Parse(story.currentTags[index + 2]);
-                        int resources = System.Int32.Parse(story.currentTags[index + 3]);
+                        int resources = System.Int32.Parse(story.currentTags[index + 2]);
+                        int delta = System.Int32.Parse(story.currentTags[index + 3]);
                         asyncCalls.AddLast(AsyncCall.AddResources(delta + curTime, resources));
                     }
-                    if (func == "train")
+                    else if (func == "train")
                     {
                         int quantity = quantities[story.currentTags[index + 2]];
                         string unit = story.currentTags[index + 3];
                         int delta = (int)story.variablesState[unit + "_time"];
                         asyncCalls.AddLast(AsyncCall.Train(unit, delta + curTime, quantity));
+                    }
+                    else if (func == "toggle")
+                    {
+                        string var = story.currentTags[index + 2];
+                        bool newVal = !(bool)story.variablesState[var];
+                        int delta = System.Int32.Parse(story.currentTags[index + 3]);
+                        asyncCalls.AddLast(AsyncCall.SetVar(var, newVal, delta + curTime));
+                    }
+                    else if (func == "set")
+                    {
+                        string var = story.currentTags[index + 2];
+                        int delta = System.Int32.Parse(story.currentTags[index + 3]);
+                        asyncCalls.AddLast(AsyncCall.SetVar(var, true, delta + curTime));
+                    }
+                    else
+                    {
+                        int delta = System.Int32.Parse(story.currentTags[index + 2]);
+                        asyncCalls.AddLast(AsyncCall.CallFunc(func, delta + curTime));
                     }
                 }
             }
@@ -162,6 +180,7 @@ public class StoryScript : MonoBehaviour {
         private string func;
         public float executeTime;
         private object[] vars;
+        private bool isVar = false;
 
         public static AsyncCall AddResources(float executionTime, int resources)
         {
@@ -173,16 +192,43 @@ public class StoryScript : MonoBehaviour {
             return new AsyncCall("train_"+unit, executionTime, quantity);
         }
 
+        public static AsyncCall SetVar(string var, object val, float executionTIme)
+        {
+            return new AsyncCall(true, var, executionTIme, val);
+        }
+
+        public static AsyncCall CallFunc(string func, float executionTime)
+        {
+            return new AsyncCall(func, executionTime);
+        }
+
         private AsyncCall(string func, float executeTime, params object[] vars)
         {
             this.func = func;
             this.executeTime = executeTime;
             this.vars = vars;
+            isVar = false;
+        }
+
+        private AsyncCall(bool isVar, string variable, float executeTime, object val)
+        {
+            this.func = variable;
+            this.executeTime = executeTime;
+            this.vars = new object[] { val };
+            this.isVar = isVar;
         }
 
         public void Execute(Story story)
         {
-            story.EvaluateFunction(func, vars);
+            if (isVar)
+            {
+                // #theHacksAreReal
+                story.variablesState[func] = vars[0];
+            }
+            else
+            {
+                story.EvaluateFunction(func, vars);
+            }
         }
     }
 }

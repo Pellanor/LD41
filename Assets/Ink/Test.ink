@@ -29,6 +29,10 @@ LIST quantities = single=1, few=5, squad=10, section=25, platoon=50, company=200
         - else: {num_to_quantity(x)} of {of}s
     }
 
+EXTERNAL trunc(x)
+=== function trunc(x)
+~ return 5
+
 VAR scouts = 1
 VAR messengers = 1
 VAR knights = 3
@@ -133,14 +137,15 @@ VAR resource_rate = 0
 *   You grab a bottle and walk in a random direction[.] stopping when the bottle is empty and declaring that your camp shall be here.
     ~ hq = woods
 -   ~ found_locations += hq
-    ~ time = 0.0
+    ~ time = 3.5
     ~ resources = 10
     ~ resource_delta = 5.0
     ~ resource_rate = 1
-    -> menu.orders
+    -> menu
 
 === status ===
-'Greetings Commander. It is {time} o'clock.
+'Greetings Commander. It is {print_num(trunc(time) % 24)} o'clock.
+<- urgent
 We currently have <>
 {idle_scouts: a {print_quantity_of(idle_scouts, "idle scout")}, <>}
 {idle_messengers: a {print_quantity_of(idle_messengers, "idle messenger")}, <>}
@@ -151,27 +156,65 @@ We currently have <>
 We are using {print_num(supply_used())} of our {print_num(supply)} supply.
 -> DONE
 
+=== function has_urgent()
+    ~return false
+
+=== urgent ===
+{show_johnsons_safe: <- johnsons.safe}
 
 === menu ===
 <- status
-+ Issue orders -> orders
-+ {can_train_any()}Train units -> training
-+ Construct buildings -> construction
-+ Make it rain! -> menu # async #add_resources # 10 # 10
-+ Wait -> menu
++ {not has_urgent()} Issue orders -> orders
++ {not has_urgent() && can_train_any()}Train units -> training
++ {not has_urgent()} Construct buildings -> construction
++ {not has_urgent()} Make it rain! -> menu # async #add_resources # 10 # 10
++ {not has_urgent()} Wait -> menu
 
-= orders
+
+
+VAR johnsons_found = false
+VAR smiths_found = false
+VAR bobs_found = false
+
+=== orders ===
 <- status
 What orders shall you give?
-* {idle_messengers} Report your home base location back to New Kingstown.
-+ {idle_scouts && not all_found()} Send a scout exploring.
+* {idle_messengers} Report your home base location back to New Kingstown. #async #reinforcements #120
+    ~idle_messengers -= 1
+    -> menu
+* {idle_scouts && not johnsons_found && time < 30} Send a scout exploring. #async #find_johnsons #10
     ~idle_scouts -= 1
-    
-    {~{LIST_ALL(locations) - found_locations}}
     -> menu
 + Nevermind -> menu
 
-= training
+VAR show_reinforcements_from_town = false
+=== function reinforcements
+~   show_reinforcements_from_town = true
+~   idle_messengers += 1
+~   idle_knights += 5
+~   idle_archers += 10
+~   idle_peasents += 30
+
+VAR show_johnsons_safe = false
+=== function find_johnsons
+~   johnsons_found = true
+~   show_johnsons_safe = true
+~   idle_scouts += 1
+
+=== johnsons ===
+= safe
+    Your scouts returned. They reported finding a family living in a small homestead not far from here.
+    ~show_johnsons_safe = false
+    -> DONE
+
+
+
+
+
+
+
+
+=== training ===
 <- status
 + {can_train_scouts(single)}Train scouts -> scout_training
 + {can_train_knights(single)}Train knight -> knight_training
@@ -276,32 +319,9 @@ How many archers would you like to train?
 -   ->menu
 
 
-= construction
-
-+ Wait -> menu
-
-
-=== unused ===
-    "News from the front M'Lord! Sir James reports barbarians ammasing in the woods. He requests immediate assistance!"
-*   Send a battalion of our finest knights!
-    'What is the purpose of our journey, Monsieur?'
-    'A wager,' he replied.
-    * *     'A wager!'[] I returned.
-            He nodded. 
-            * * *   'But surely that is foolishness!'
-            * * *  'A most serious matter then!'
-            - - -   He nodded again.
-            * * *   'But can we win?'
-                    'That is what we will endeavour to find out,' he answered.
-            * * *   'A modest wager, I trust?'
-                    'Twenty thousand pounds,' he replied, quite flatly.
-            * * *   I asked nothing further of him then[.], and after a final, polite cough, he offered nothing more to me. <>
-    * *     'Ah[.'],' I replied, uncertain what I thought.
-    - -     After that, <>
-*   How dare you interrupt my dinner for such hogwash!
-- we passed the day in silence.
-- -> END
-
+=== construction ===
+<- status
++ Nevermind -> menu
 
 
 === function print_num(x) ===
